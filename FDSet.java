@@ -4,8 +4,6 @@ import java.util.StringJoiner;
 import java.util.TreeSet;
 
 /**
- * 
- * <<READ, BUT DO NOT MODIFY THIS FILE>>
  * This class represents a set of functional dependencies
  * 
  * @author David
@@ -15,7 +13,7 @@ public class FDSet implements Iterable<FD> {
   private final Set<FD> fdset;
 
   /**
-   * Constructs an functional dependency set
+   * Constructs a functional dependency set
    * 
    * @param fds a variable list of FDs
    */
@@ -51,7 +49,7 @@ public class FDSet implements Iterable<FD> {
   /**
    * Unions this FD set with another
    * 
-   * @param fdset Reference to another FD set
+   * @param other Reference to another FD set
    */
   public void addAll(FDSet other) {
     for (FD fd : other.fdset) {
@@ -86,6 +84,11 @@ public class FDSet implements Iterable<FD> {
    */
   public int size() {
     return this.fdset.size();
+  }
+
+  @Override
+  public int hashCode() {
+    return this.fdset.hashCode();
   }
 
   /**
@@ -126,13 +129,31 @@ public class FDSet implements Iterable<FD> {
   }
 
   /**
-   * Two FDs are logically equivalent iff their closures are equal.
+   * Determines whether two FD sets contain the same FDs.
+   * DO NOT confuse this method with logical equivalence of two FD sets.
+   * 
+   * @param other Reference to another FD set
+   * @return true if this FDset and the given FDset contain the same set of FDs
+   */
+  @Override
+  public boolean equals(Object other) {
+    if (this == other) {
+      return true;
+    }
+    if (!(other instanceof FDSet)) {
+      return false;
+    }
+    
+    return this.fdset.equals(((FDSet)other).fdset);
+  }
+
+  /**
+   * Two FD sets are logically equivalent iff their closures are equal.
    * 
    * @param other Reference to another FD set
    * @return true if logically equivalent to the given FDset
    */
-  @Override
-  public boolean equals(Object other) {
+  public boolean isEquivalentTo(Object other) {
     if (this == other) {
       return true;
     }

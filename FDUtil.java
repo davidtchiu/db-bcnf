@@ -2,7 +2,6 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * <<READ, BUT DO NOT MODIFY THIS FILE>>
  * This utility class is not meant to be instantitated, and just provides some
  * useful methods on FD sets.
  * 
@@ -80,7 +79,7 @@ public final class FDUtil {
   /**
    * Generates the closure of the given FD Set
    * 
-   * @param fdset (Immutable) FD Set
+   * @param fdset input FD set -  its contents are not to be modified!
    * @return the closure of the input FD Set
    */
   public static FDSet fdSetClosure(final FDSet fdset) {
@@ -95,6 +94,15 @@ public final class FDUtil {
     }
     Set<Set<String>> attrPset = FDUtil.powerSet(attrSet);
 
+    // For every non-empty subset X of R:
+    //   Add X -> X to F+
+    for (Set<String> s : attrPset) {
+      if (!s.isEmpty()) {
+        // System.out.println("hey: " + new FD(s, s));
+        current.add(new FD(s, s));
+      }
+    }
+    
     // repeated applications of Armstrong's axioms
     // until no further changes are detected.
     do {
