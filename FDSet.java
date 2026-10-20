@@ -162,7 +162,7 @@ public class FDSet implements Iterable<FD> {
     }
     
     FDSet otherFDset = (FDSet) other;
-    return FDUtil.fdSetClosure(this).getSet().equals(FDUtil.fdSetClosure(otherFDset).getSet());
+    return FDUtil.fdSetClosure(this).equals(FDUtil.fdSetClosure(otherFDset));
   }
 
   /**
