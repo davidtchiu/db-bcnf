@@ -9,24 +9,26 @@ import java.util.Set;
  * @version 5/18/2022
  */
 public final class FDUtil {
-
   /**
-   * Resolves all trivial FDs in the given set of FDs
-   * 
-   * @param fdset (Immutable) FD Set
-   * @return a set of trivial FDs with respect to the given FDSet
+   * Generates all trivial FDs over the given attribute set.
+   * FDs with empty right-hand sides are omitted.
+   *
+   * @param attrs the relation's attributes; must not be modified
+   * @return a new set containing all trivial FDs over the given attributes
    */
-  public static FDSet trivial(final FDSet fdset) {
+  public static FDSet trivial(final Set<String> attrs) {
     FDSet result = new FDSet();
-    for (FD fd : fdset) {
-      // the left hand of any FD can trivially determine all of its subsets
-      // (i.e., power set of the left hand side)
-      for (Set<String> attrs : FDUtil.powerSet(fd.getLeft())) {
-        if (!attrs.isEmpty()) {
-          result.add(new FD(fd.getLeft(), attrs));
+
+    for (Set<String> left : FDUtil.powerSet(attrs)) {
+      if (!left.isEmpty()) {
+        for (Set<String> right : FDUtil.powerSet(left)) {
+          if (!right.isEmpty()) {
+            result.add(new FD(left, right));
+          }
         }
       }
     }
+
     return result;
   }
 
@@ -77,45 +79,37 @@ public final class FDUtil {
   }
 
   /**
-   * Generates the closure of the given FD Set
-   * 
-   * @param fdset input FD set -  its contents are not to be modified!
-   * @return the closure of the input FD Set
+   * Generates the closure of the input FD set, omitting FDs with empty
+   * right-hand sides. The relation's attributes are assumed to be exactly
+   * those appearing on either side of the input FDs.
+   *
+   * @param fdset input FD set; must not be modified
+   * @return a new FD set containing the closure
    */
   public static FDSet fdSetClosure(final FDSet fdset) {
-    int last;
     FDSet current = new FDSet(fdset);
 
-    // all attributes represented in the FD set
-    Set<String> attrSet = new HashSet<>();
-    for (FD f : fdset) {
-      attrSet.addAll(f.getLeft());
-      attrSet.addAll(f.getRight());
+    // Collect all attributes appearing in the input FDs.
+    Set<String> attrs = new HashSet<>();
+    for (FD fd : fdset) {
+      attrs.addAll(fd.getLeft());
+      attrs.addAll(fd.getRight());
     }
-    Set<Set<String>> attrPset = FDUtil.powerSet(attrSet);
 
-    // For every non-empty subset X of R:
-    //   Add X -> X to F+
-    for (Set<String> s : attrPset) {
-      if (!s.isEmpty()) {
-        // System.out.println("hey: " + new FD(s, s));
-        current.add(new FD(s, s));
-      }
-    }
-    
-    // repeated applications of Armstrong's axioms
-    // until no further changes are detected.
+    Set<Set<String>> subsets = FDUtil.powerSet(attrs);
+
+    // Add all trivial FDs once.
+    current.addAll(FDUtil.trivial(attrs));
+
+    // Repeat augmentation and transitivity until no new FDs are found.
+    int last;
     do {
       last = current.size();
 
-      // union with augmentations of current FD set with all subsets of attrs
-      for (Set<String> attrs : attrPset) {
-        current.addAll(FDUtil.augment(current, attrs));
+      for (Set<String> subset : subsets) {
+        current.addAll(FDUtil.augment(current, subset));
       }
-      // union with trivial dependencies
-      current.addAll(FDUtil.trivial(current));
 
-      // union with transitive dependencies
       current.addAll(FDUtil.transitive(current));
     } while (current.size() != last);
 
@@ -123,40 +117,34 @@ public final class FDUtil {
   }
 
   /**
-   * Generates the power set of the given set (that is, all subsets of
-   * the given set of elements)
-   * 
-   * @param set Any set of elements (Immutable)
+   * Generates all subsets of the input set, including the empty subset.
+   *
+   * @param set input set; must not be modified
    * @return the power set of the input set
    */
-  @SuppressWarnings("unchecked")
   public static <E> Set<Set<E>> powerSet(final Set<E> set) {
-
-    // base case: power set of the empty set is the set containing the empty set
-    if (set.size() == 0) {
+    if (set.isEmpty()) {
       Set<Set<E>> basePset = new HashSet<>();
       basePset.add(new HashSet<>());
       return basePset;
     }
 
-    // remove the first element from the current set
-    E[] attrs = (E[]) set.toArray();
-    set.remove(attrs[0]);
+    // Choose an element and remove it from a copy.
+    E first = set.iterator().next();
+    Set<E> reduced = new HashSet<>(set);
+    reduced.remove(first);
 
-    // recurse and obtain the power set of the reduced set of elements
-    Set<Set<E>> currentPset = FDUtil.powerSet(set);
+    // Generate subsets without the chosen element.
+    Set<Set<E>> currentPset = FDUtil.powerSet(reduced);
 
-    // restore the element from input set
-    set.add(attrs[0]);
-
-    // iterate through all elements of current power set and union with first
-    // element
+    // Generate new subsets containing the chosen element.
     Set<Set<E>> otherPset = new HashSet<>();
-    for (Set<E> attrSet : currentPset) {
-      Set<E> otherAttrSet = new HashSet<>(attrSet);
-      otherAttrSet.add(attrs[0]);
-      otherPset.add(otherAttrSet);
+    for (Set<E> subset : currentPset) {
+      Set<E> copy = new HashSet<>(subset);
+      copy.add(first);
+      otherPset.add(copy);
     }
+
     currentPset.addAll(otherPset);
     return currentPset;
   }
